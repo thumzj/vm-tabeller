@@ -1,108 +1,174 @@
 <!DOCTYPE html>
-<html lang="sv">
+<html lang="sv" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fotbolls-VM – Alla Tabeller</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 20px;
-        }
-        h1 {
-            text-align: center;
-            color: #1a1a1a;
-            margin-bottom: 30px;
-        }
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 25px;
-            max-width: 1600px;
-            margin: 0 auto;
-        }
-        .group-card {
-            background: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-        iframe {
-            width: 100% !important;
-            height: 431px !important;
-            border: none;
-        }
-        .footer-text {
-            font-size: 11px;
-            color: #666;
-            text-align: left;
-            margin-top: 8px;
-        }
-        .footer-text a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-    </style>
+    <title>VM Live Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://jsdelivr.net"></script>
 </head>
-<body>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
 
-    <h1>FIFA Fotbolls-VM – Gruppspel</h1>
+    <!-- Header / Nav -->
+    <nav class="bg-white dark:bg-gray-800 shadow-md p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wider text-blue-600 dark:text-blue-400">🏆 VM LIVE CENTER</h1>
+            <button id="theme-toggle" class="p-2 bg-gray-200 dark:bg-gray-700 rounded-full hover:scale-105 transition-transform text-sm font-medium">
+                🌓 Ändra tema
+            </button>
+        </div>
+    </nav>
 
-    <div class="grid-container">
+    <!-- Huvudinnehåll -->
+    <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Vänster/Mitten: Matcher & Statistik (Täcker 2 kolumner på stor skärm) -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Live & Kommande Matcher -->
+            <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <span class="animate-pulse inline-block w-2 h-2 rounded-full bg-red-500"></span> Matcher & Live-resultat
+                    </h2>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Uppdateras var 30:e sek</span>
+                </div>
+                <div id="matches-container" class="space-y-3">
+                    <p class="text-gray-500 animate-pulse text-sm">Laddar live-matcher...</p>
+                </div>
+            </section>
 
-        <!-- Grupp A -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-A" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
+            <!-- Spelarstatistik -->
+            <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                <h2 class="text-lg font-bold mb-4">📊 Spelarstatistik (Skytteliga)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-500">
+                                <th class="pb-2">Spelare</th>
+                                <th class="pb-2">Lag</th>
+                                <th class="pb-2 text-right">Mål</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-container">
+                            <!-- Fylls i dynamiskt -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
 
-        <!-- Grupp B -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-B" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
+        <!-- Höger: Tabell -->
+        <div class="space-y-6">
+            <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
+                <h2 class="text-lg font-bold mb-4">📋 Grupptabell (Exempel)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-700 text-gray-500 text-xs">
+                                <th class="pb-2 text-left">Lag</th>
+                                <th class="pb-2">M</th>
+                                <th class="pb-2">+/-</th>
+                                <th class="pb-2 font-bold text-blue-500">P</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-container">
+                            <!-- Fylls i dynamiskt -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
 
-        <!-- Grupp C -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-C" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+    </main>
 
-        <!-- Grupp D -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-D" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+    <!-- JavaScript Logik -->
+    <script>
+        // Mörkt läge växlare
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
 
-        <!-- Grupp E -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-E" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+        // Hämta Live-matcher & Resultat
+        async function fetchLiveMatches() {
+            try {
+                // Vi använder TheSportsDB test-URL för livescore (visar aktuella eller senaste live-matcher)
+                const res = await fetch('https://thesportsdb.com');
+                const data = await res.json();
+                const container = document.getElementById('matches-container');
+                container.innerHTML = '';
 
-        <!-- Grupp F -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-F" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+                if (!data.teams || data.teams.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-sm">Just nu spelas inga livematcher. Visar senaste demoscore.</p>';
+                    // Demo-data om API:et är tomt just nu
+                    data.teams = [
+                        {strHomeTeam: 'Sverige', strAwayTeam: 'Brasilien', intHomeScore: '2', intAwayScore: '1', strStatus: '84\''},
+                        {strHomeTeam: 'Frankrike', strAwayTeam: 'Argentina', intHomeScore: '0', intAwayScore: '0', strStatus: 'Halvtid'}
+                    ];
+                }
 
-        <!-- Grupp G -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-G" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+                data.teams.slice(0, 4).forEach(match => {
+                    const matchEl = document.createElement('div');
+                    matchEl.className = "flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700";
+                    matchEl.innerHTML = `
+                        <div class="flex-1 font-medium">${match.strHomeTeam}</div>
+                        <div class="flex items-center gap-3 px-4 bg-gray-200 dark:bg-gray-700 rounded py-1 font-mono font-bold text-blue-600 dark:text-blue-400">
+                            <span>${match.intHomeScore ?? 0}</span>
+                            <span>-</span>
+                            <span>${match.intAwayScore ?? 0}</span>
+                        </div>
+                        <div class="flex-1 text-right font-medium">${match.strAwayTeam}</div>
+                        <div class="ml-4 text-xs font-semibold text-red-500 bg-red-100 dark:bg-red-950/50 px-2 py-0.5 rounded">${match.strStatus || 'LIVE'}</div>
+                    `;
+                    container.appendChild(matchEl);
+                });
+            } catch (err) {
+                console.error("Fel vid hämtning av matcher:", err);
+            }
+        }
 
-        <!-- Grupp H -->
-        <div class="group-card">
-            <iframe id="sofa-standings-embed-3959-58210-H" src="https://sofascore.com" scrolling="no"></iframe>
-            <div class="footer-text">Tabeller försedda av <a target="_blank" href="https://www.sofascore.com">Sofascore</a></div>
-        </div>
+        // Generera statisk/simulerad data för Tabell & Spelare (Då gratis-API kräver fasta id:n för ligor)
+        function generateDemoData() {
+            // Tabell-data
+            const tableContainer = document.getElementById('table-container');
+            const teams = [
+                {name: 'Sverige', m: 2, gd: '+3', p: 6},
+                {name: 'Brasilien', m: 2, gd: '+1', p: 3},
+                {name: 'Frankrike', m: 2, gd: '0', p: 1},
+                {name: 'Argentina', m: 2, gd: '-4', p: 1},
+            ];
+            tableContainer.innerHTML = teams.map(t => `
+                <tr class="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                    <td class="py-2 text-left font-medium">${t.name}</td>
+                    <td class="py-2 text-gray-500">${t.m}</td>
+                    <td class="py-2 text-gray-500">${t.gd}</td>
+                    <td class="py-2 font-bold text-blue-500">${t.p}</td>
+                </tr>
+            `).join('');
 
-    </div>
+            // Spelarstatistik
+            const statsContainer = document.getElementById('stats-container');
+            const players = [
+                {name: 'Alexander Isak', team: 'Sverige', goals: 4},
+                {name: 'Vinícius Jr.', team: 'Brasilien', goals: 3},
+                {name: 'Kylian Mbappé', team: 'Frankrike', goals: 2},
+                {name: 'Lionel Messi', team: 'Argentina', goals: 1},
+            ];
+            statsContainer.innerHTML = players.map(p => `
+                <tr class="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                    <td class="py-2 font-medium">${p.name}</td>
+                    <td class="py-2 text-gray-500 text-xs">${p.team}</td>
+                    <td class="py-2 text-right font-bold text-emerald-500">${p.goals}</td>
+                </tr>
+            `).join('');
+        }
 
+        // Initiera och sätt igång realtids-polling
+        fetchLiveMatches();
+        generateDemoData();
+        
+        // Uppdatera live-matcher var 30:e sekund helt gratis
+        setInterval(fetchLiveMatches, 30000);
+    </script>
 </body>
 </html>
