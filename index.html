@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VM Live Center</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Fotbolls-VM Live Center</title>
+    <!-- Tailwind CSS (Korrigerat CDN) -->
     <script src="https://jsdelivr.net"></script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors duration-200">
@@ -22,18 +22,18 @@
     <!-- Huvudinnehåll -->
     <main class="max-w-6xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Vänster/Mitten: Matcher & Statistik (Täcker 2 kolumner på stor skärm) -->
+        <!-- Vänster/Mitten: Matcher & Statistik -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Live & Kommande Matcher -->
             <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold flex items-center gap-2">
-                        <span class="animate-pulse inline-block w-2 h-2 rounded-full bg-red-500"></span> Matcher & Live-resultat
+                        <span id="live-indicator" class="animate-pulse inline-block w-2 h-2 rounded-full bg-red-500"></span> Matcher & Live-resultat
                     </h2>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Uppdateras var 30:e sek</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Uppdateras live</span>
                 </div>
                 <div id="matches-container" class="space-y-3">
-                    <p class="text-gray-500 animate-pulse text-sm">Laddar live-matcher...</p>
+                    <p class="text-gray-500 animate-pulse text-sm">Hämtar livematcher från turneringen...</p>
                 </div>
             </section>
 
@@ -50,7 +50,7 @@
                             </tr>
                         </thead>
                         <tbody id="stats-container">
-                            <!-- Fylls i dynamiskt -->
+                            <tr><td colspan="3" class="text-gray-500 animate-pulse py-2">Hämtar målskyttar...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -60,7 +60,7 @@
         <!-- Höger: Tabell -->
         <div class="space-y-6">
             <section class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm">
-                <h2 class="text-lg font-bold mb-4">📋 Grupptabell (Exempel)</h2>
+                <h2 class="text-lg font-bold mb-4">📋 Aktuell Grupptabell</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full text-center border-collapse text-sm">
                         <thead>
@@ -72,7 +72,7 @@
                             </tr>
                         </thead>
                         <tbody id="table-container">
-                            <!-- Fylls i dynamiskt -->
+                            <tr><td colspan="4" class="text-gray-500 animate-pulse py-2">Genererar tabeller...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -89,86 +89,96 @@
             document.documentElement.classList.toggle('dark');
         });
 
-        // Hämta Live-matcher & Resultat
-        async function fetchLiveMatches() {
-            try {
-                // Vi använder TheSportsDB test-URL för livescore (visar aktuella eller senaste live-matcher)
-                const res = await fetch('https://thesportsdb.com');
-                const data = await res.json();
-                const container = document.getElementById('matches-container');
-                container.innerHTML = '';
+        // Vi använder ett publikt, öppet sport-API som inte kräver hemliga nycklar
+        const API_URL = 'https://openligadb.de'; 
 
-                if (!data.teams || data.teams.length === 0) {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">Just nu spelas inga livematcher. Visar senaste demoscore.</p>';
-                    // Demo-data om API:et är tomt just nu
-                    data.teams = [
-                        {strHomeTeam: 'Sverige', strAwayTeam: 'Brasilien', intHomeScore: '2', intAwayScore: '1', strStatus: '84\''},
-                        {strHomeTeam: 'Frankrike', strAwayTeam: 'Argentina', intHomeScore: '0', intAwayScore: '0', strStatus: 'Halvtid'}
-                    ];
+        async function fetchRealTimeData() {
+            try {
+                // 1. HÄMTA MATCHER & LIVERESULTAT
+                const res = await fetch(API_URL);
+                const matches = await res.json();
+                
+                const matchesContainer = document.getElementById('matches-container');
+                matchesContainer.innerHTML = '';
+
+                if (!matches || matches.length === 0) {
+                    matchesContainer.innerHTML = '<p class="text-gray-500 text-sm">Inga aktuella matcher hittades för denna turnering.</p>';
+                    return;
                 }
 
-                data.teams.slice(0, 4).forEach(match => {
+                // Spara statistik och tabellräknare lokalt i minnet baserat på riktig data
+                let teamStats = {};
+                let playerGoals = {};
+
+                // Loopa igenom matcherna från API:et
+                matches.forEach(match => {
+                    const homeTeam = match.team1.teamName;
+                    const awayTeam = match.team2.teamName;
+                    
+                    // Kolla om matchen är slut eller pågår
+                    const isFinished = match.matchIsFinished;
+                    let homeScore = 0;
+                    let awayScore = 0;
+
+                    if (match.matchResults && match.matchResults.length > 0) {
+                        // Ta det senaste registrerade resultatet (fulltid eller live)
+                        const finalResult = match.matchResults.find(r => r.resultName === "Endergebnis" || r.resultName === "Halbzeitergebnis") || match.matchResults[0];
+                        homeScore = finalResult.pointsTeam1;
+                        awayScore = finalResult.pointsTeam2;
+                    }
+
+                    // Bygg match-raden i gränssnittet
                     const matchEl = document.createElement('div');
                     matchEl.className = "flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-700";
+                    
+                    const statusText = isFinished ? "SLUT" : (match.matchResults.length > 0 ? "LIVE" : "KOMMANDE");
+                    const statusClass = isFinished ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300" : (statusText === "LIVE" ? "bg-red-100 text-red-500 dark:bg-red-950/50" : "bg-blue-100 text-blue-500 dark:bg-blue-950/50");
+
                     matchEl.innerHTML = `
-                        <div class="flex-1 font-medium">${match.strHomeTeam}</div>
-                        <div class="flex items-center gap-3 px-4 bg-gray-200 dark:bg-gray-700 rounded py-1 font-mono font-bold text-blue-600 dark:text-blue-400">
-                            <span>${match.intHomeScore ?? 0}</span>
-                            <span>-</span>
-                            <span>${match.intAwayScore ?? 0}</span>
+                        <div class="flex-1 font-medium flex items-center gap-2">
+                            <img src="${match.team1.teamIconUrl}" class="w-5 h-5 object-contain inline" onerror="this.style.display='none'">
+                            <span>${homeTeam}</span>
                         </div>
-                        <div class="flex-1 text-right font-medium">${match.strAwayTeam}</div>
-                        <div class="ml-4 text-xs font-semibold text-red-500 bg-red-100 dark:bg-red-950/50 px-2 py-0.5 rounded">${match.strStatus || 'LIVE'}</div>
+                        <div class="flex items-center gap-3 px-4 bg-gray-200 dark:bg-gray-700 rounded py-1 font-mono font-bold text-blue-600 dark:text-blue-400">
+                            <span>${homeScore}</span>
+                            <span>-</span>
+                            <span>${awayScore}</span>
+                        </div>
+                        <div class="flex-1 text-right font-medium flex items-center justify-end gap-2">
+                            <span>${awayTeam}</span>
+                            <img src="${match.team2.teamIconUrl}" class="w-5 h-5 object-contain inline" onerror="this.style.display='none'">
+                        </div>
+                        <div class="ml-4 text-xs font-semibold px-2 py-0.5 rounded ${statusClass}">${statusText}</div>
                     `;
-                    container.appendChild(matchEl);
-                });
-            } catch (err) {
-                console.error("Fel vid hämtning av matcher:", err);
-            }
-        }
+                    matchesContainer.appendChild(matchEl);
 
-        // Generera statisk/simulerad data för Tabell & Spelare (Då gratis-API kräver fasta id:n för ligor)
-        function generateDemoData() {
-            // Tabell-data
-            const tableContainer = document.getElementById('table-container');
-            const teams = [
-                {name: 'Sverige', m: 2, gd: '+3', p: 6},
-                {name: 'Brasilien', m: 2, gd: '+1', p: 3},
-                {name: 'Frankrike', m: 2, gd: '0', p: 1},
-                {name: 'Argentina', m: 2, gd: '-4', p: 1},
-            ];
-            tableContainer.innerHTML = teams.map(t => `
-                <tr class="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
-                    <td class="py-2 text-left font-medium">${t.name}</td>
-                    <td class="py-2 text-gray-500">${t.m}</td>
-                    <td class="py-2 text-gray-500">${t.gd}</td>
-                    <td class="py-2 font-bold text-blue-500">${t.p}</td>
-                </tr>
-            `).join('');
+                    // 2. RÄKNA UT TABELLEN DYNAMISKT FRÅN MATCHERNA
+                    if (!teamStats[homeTeam]) teamStats[homeTeam] = { name: homeTeam, m: 0, goalsFor: 0, goalsAgainst: 0, p: 0 };
+                    if (!teamStats[awayTeam]) teamStats[awayTeam] = { name: awayTeam, m: 0, goalsFor: 0, goalsAgainst: 0, p: 0 };
 
-            // Spelarstatistik
-            const statsContainer = document.getElementById('stats-container');
-            const players = [
-                {name: 'Alexander Isak', team: 'Sverige', goals: 4},
-                {name: 'Vinícius Jr.', team: 'Brasilien', goals: 3},
-                {name: 'Kylian Mbappé', team: 'Frankrike', goals: 2},
-                {name: 'Lionel Messi', team: 'Argentina', goals: 1},
-            ];
-            statsContainer.innerHTML = players.map(p => `
-                <tr class="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
-                    <td class="py-2 font-medium">${p.name}</td>
-                    <td class="py-2 text-gray-500 text-xs">${p.team}</td>
-                    <td class="py-2 text-right font-bold text-emerald-500">${p.goals}</td>
-                </tr>
-            `).join('');
-        }
+                    if (isFinished || match.matchResults.length > 0) {
+                        teamStats[homeTeam].m += 1;
+                        teamStats[awayTeam].m += 1;
+                        teamStats[homeTeam].goalsFor += homeScore;
+                        teamStats[homeTeam].goalsAgainst += awayScore;
+                        teamStats[awayTeam].goalsFor += awayScore;
+                        teamStats[awayTeam].goalsAgainst += homeScore;
 
-        // Initiera och sätt igång realtids-polling
-        fetchLiveMatches();
-        generateDemoData();
-        
-        // Uppdatera live-matcher var 30:e sekund helt gratis
-        setInterval(fetchLiveMatches, 30000);
-    </script>
-</body>
-</html>
+                        if (homeScore > awayScore) {
+                            teamStats[homeTeam].p += 3;
+                        } else if (homeScore < awayScore) {
+                            teamStats[awayTeam].p += 3;
+                        } else {
+                            teamStats[homeTeam].p += 1;
+                            teamStats[awayTeam].p += 1;
+                        }
+                    }
+
+                    // 3. HÄMTA MÅLSKYTTAR DYNAMISKT FRÅN MATCHEN
+                    if (match.goals && match.goals.length > 0) {
+                        match.goals.forEach(goal => {
+                            const playerName = goal.goalGetterName;
+                            if (playerName) {
+                                if (!playerGoals[playerName]) {
+                                    playerGoals[playerName] = { name: playerName, team: goal.isOwnGoal ? "Självmål" : (goal.scoreTeam1 > goal.scoreTeam2 ? homeTeam : awayTeam), goals: 0 };
+                                }
